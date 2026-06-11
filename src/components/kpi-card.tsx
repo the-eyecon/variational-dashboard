@@ -37,7 +37,7 @@ export default function KpiCard({
       setIsChanged(true);
       const timer = setTimeout(() => {
         setIsChanged(false);
-      }, 5000); // Highlight for 5 seconds
+      }, 10000); // Highlight for 10 seconds
       
       prevValueRef.current = value;
       return () => clearTimeout(timer);
@@ -68,7 +68,7 @@ export default function KpiCard({
       className={cn(
         "bg-card p-4 rounded-lg flex flex-col justify-between relative group/card overflow-hidden transition-all duration-500",
         isChanged 
-          ? "border-2 border-accent-blue shadow-[0_0_15px_rgba(0,136,255,0.25)]" 
+          ? "border-2 border-success shadow-[0_0_15px_rgba(16,185,129,0.3)]" 
           : "border border-border",
         className
       )}

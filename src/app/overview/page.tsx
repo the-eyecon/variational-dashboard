@@ -42,6 +42,32 @@ export default function OverviewPage() {
   const markets = protocolData?.markets || [];
   const treasurySummary = treasuryData?.summary;
 
+  const RWA_TICKERS = new Set([
+    "US500", "SPY", "QQQ", "SOXL", "EWJ",
+    "TSLA", "TSM", "INTC", "QCOM", "RKLB",
+    "NATGAS", "BZ", "COPPER", "XAU", "XAUT", "XAG", "XPD", "XPT",
+    "C", "M", "US"
+  ]);
+
+  const isRWAMarket = (marketName: string): boolean => {
+    const ticker = marketName.split("-")[0];
+    return RWA_TICKERS.has(ticker);
+  };
+
+  // Sort and filter snapshot markets: top 5 Crypto perps + top 5 RWA perps, each by 24h volume
+  const cryptoMarkets = markets.filter((m) => !isRWAMarket(m.name));
+  const rwaMarkets = markets.filter((m) => isRWAMarket(m.name));
+
+  const top5Crypto = [...cryptoMarkets]
+    .sort((a, b) => b.volume24h - a.volume24h)
+    .slice(0, 5);
+
+  const top5Rwa = [...rwaMarkets]
+    .sort((a, b) => b.volume24h - a.volume24h)
+    .slice(0, 5);
+
+  const snapshotMarkets = [...top5Crypto, ...top5Rwa];
+
   // Process data for Recharts horizontal bar chart based on selected metric (Volume vs. Open Interest)
   const chartData = [...markets]
     .sort((a, b) => {
@@ -51,10 +77,12 @@ export default function OverviewPage() {
         return b.totalOI - a.totalOI;
       }
     })
-    .slice(0, 5)
+    .slice(0, 10)
     .map(m => ({
       name: m.name.replace("-USDC-PERP", ""),
       value: chartMetric === "volume" ? m.volume24h : m.totalOI,
+      volume24h: m.volume24h,
+      totalOI: m.totalOI,
     }));
 
   return (
@@ -157,7 +185,7 @@ export default function OverviewPage() {
             <div className="p-4 border-b border-border flex justify-between items-center bg-card/40">
               <div>
                 <h3 className="text-sm font-bold text-white uppercase tracking-wider">Market Snapshot</h3>
-                <p className="text-xs text-text-secondary mt-0.5">Active contracts and current funding profiles</p>
+                <p className="text-xs text-text-secondary mt-0.5">Top 5 Crypto and Top 5 RWA perps ranked by 24h volume</p>
               </div>
               <Link href="/markets" className="text-xs text-accent-blue hover:text-accent-blue-hover font-semibold flex items-center space-x-0.5">
                 <span>All Markets</span>
@@ -180,9 +208,9 @@ export default function OverviewPage() {
                 </thead>
                 <tbody className="divide-y divide-border/60 text-xs font-mono">
                   {isLoading ? (
-                    Array.from({ length: 5 }).map((_, idx) => (
+                    Array.from({ length: 10 }).map((_, idx) => (
                       <tr key={idx} className="animate-pulse">
-                        <td className="py-3 px-4"><div className="h-4 w-20 bg-border rounded" /></td>
+                        <td className="py-3 px-4"><div className="h-4 w-24 bg-border rounded" /></td>
                         <td className="py-3 px-4"><div className="h-4 w-12 ml-auto bg-border rounded" /></td>
                         <td className="py-3 px-4"><div className="h-4 w-12 ml-auto bg-border rounded" /></td>
                         <td className="py-3 px-4"><div className="h-4 w-16 ml-auto bg-border rounded" /></td>
@@ -190,19 +218,33 @@ export default function OverviewPage() {
                         <td className="py-3 px-4"><div className="h-4 w-16 ml-auto bg-border rounded" /></td>
                       </tr>
                     ))
-                  ) : markets.length === 0 ? (
+                  ) : snapshotMarkets.length === 0 ? (
                     <tr>
                       <td colSpan={6} className="py-8 px-4 text-center text-text-secondary select-none">
                         No active markets found.
                       </td>
                     </tr>
                   ) : (
-                    markets.slice(0, 5).map((m) => (
+                    snapshotMarkets.map((m) => (
                       <tr 
                         key={m.name} 
                         className="hover:bg-card-hover/40 transition-colors"
                       >
-                        <td className="py-3.5 px-4 font-bold text-white">{m.name}</td>
+                        <td className="py-3.5 px-4">
+                          <div className="flex items-center space-x-2">
+                            <span className="font-bold text-white">{m.name}</span>
+                            <span 
+                              className={cn(
+                                "text-[9px] font-bold px-1.5 py-0.5 rounded border uppercase tracking-wider select-none",
+                                isRWAMarket(m.name) 
+                                  ? "bg-amber-500/10 border-amber-500/30 text-amber-500" 
+                                  : "bg-accent-blue/10 border-accent-blue/30 text-accent-blue"
+                              )}
+                            >
+                              {isRWAMarket(m.name) ? "RWA" : "Crypto"}
+                            </span>
+                          </div>
+                        </td>
                         <td className="py-3.5 px-4 text-right text-white">
                           {formatUSD(m.price, m.price < 5 ? 4 : 2)}
                         </td>
@@ -264,28 +306,33 @@ export default function OverviewPage() {
               </div>
             </div>
             <p className="text-xs text-text-secondary -mt-2.5 mb-4 leading-normal">
-              Top perpetuals ranked by {chartMetric === "volume" ? "daily turnover volume" : "outstanding open interest"}
+              Top 10 perpetuals ranked by {chartMetric === "volume" ? "daily turnover volume" : "outstanding open interest"}
             </p>
           </div>
 
-          <div className="flex-1 flex items-center justify-center min-h-[300px]">
+          <div className="flex-1 w-full flex flex-col justify-start mt-2">
             {isLoading ? (
-              <div className="w-full space-y-4 animate-pulse">
-                <div className="h-5 bg-border rounded w-full" />
-                <div className="h-5 bg-border rounded w-[85%]" />
-                <div className="h-5 bg-border rounded w-[70%]" />
-                <div className="h-5 bg-border rounded w-[60%]" />
-                <div className="h-5 bg-border rounded w-[45%]" />
+              <div className="w-full space-y-3.5 animate-pulse mt-4">
+                <div className="h-4 bg-border rounded w-full" />
+                <div className="h-4 bg-border rounded w-[95%]" />
+                <div className="h-4 bg-border rounded w-[90%]" />
+                <div className="h-4 bg-border rounded w-[85%]" />
+                <div className="h-4 bg-border rounded w-[80%]" />
+                <div className="h-4 bg-border rounded w-[75%]" />
+                <div className="h-4 bg-border rounded w-[70%]" />
+                <div className="h-4 bg-border rounded w-[65%]" />
+                <div className="h-4 bg-border rounded w-[60%]" />
+                <div className="h-4 bg-border rounded w-[55%]" />
               </div>
             ) : chartData.length === 0 ? (
-              <span className="text-text-secondary text-xs">No chart data available</span>
+              <span className="text-text-secondary text-xs mt-4">No chart data available</span>
             ) : (
-              <div className="w-full h-[300px]">
+              <div className="w-full h-[420px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart 
                     data={chartData} 
                     layout="vertical"
-                    margin={{ left: 10, right: 20, top: 10, bottom: 5 }}
+                    margin={{ left: 5, right: 20, top: 0, bottom: 0 }}
                   >
                     <XAxis 
                       type="number" 
@@ -307,18 +354,60 @@ export default function OverviewPage() {
                     />
                     <RechartsTooltip 
                       cursor={{ fill: "rgba(39, 39, 42, 0.2)" }} 
-                      contentStyle={{ backgroundColor: "#000000", borderColor: "#121216", borderRadius: "4px" }}
-                      labelStyle={{ color: "#FFFFFF", fontWeight: "bold", fontSize: 12 }}
-                      itemStyle={{ color: "#00E5FF", fontSize: 12 }}
-                      formatter={(v: unknown) => [formatUSD(Number(v), 2), chartMetric === "volume" ? "24h Volume" : "Open Interest"]}
+                      content={({ active, payload, label }) => {
+                        if (active && payload && payload.length) {
+                          const data = payload[0].payload as { volume24h: number; totalOI: number; name: string };
+                          const isRWA = isRWAMarket(data.name);
+                          return (
+                            <div className="bg-[#000000]/95 backdrop-blur border border-[#121216] p-2.5 rounded shadow-xl text-xs font-mono">
+                              <div 
+                                className={`font-bold uppercase mb-1.5 ${
+                                  isRWA ? "text-amber-500" : "text-accent-blue"
+                                }`}
+                              >
+                                {label} PERPETUAL
+                              </div>
+                              <div className="space-y-1 text-[11px]">
+                                <div className="flex justify-between items-center space-x-6">
+                                  <span className="text-text-secondary">24h Volume:</span>
+                                  <span className="font-bold text-white font-mono">{formatUSD(data.volume24h, 2)}</span>
+                                </div>
+                                <div className="flex justify-between items-center space-x-6">
+                                  <span className="text-text-secondary">Open Interest:</span>
+                                  <span className="font-bold text-white font-mono">{formatUSD(data.totalOI, 2)}</span>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
                     />
-                    <Bar dataKey="value" fill="#00E5FF" radius={[0, 4, 4, 0]}>
-                      {chartData.map((entry, index) => (
-                        <Cell 
-                          key={`cell-${index}`} 
-                          fill={index === 0 ? "#00E5FF" : index === 1 ? "#33F0FF" : index === 2 ? "#66F5FF" : "#99FAFF"}
-                        />
-                      ))}
+                    <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={18}>
+                      {chartData.map((entry, index) => {
+                        const isRWA = isRWAMarket(entry.name);
+                        
+                        const cryptoShades = [
+                          "#0088FF", "#1192FF", "#229CFF", "#33A6FF", "#44B0FF",
+                          "#55BAFF", "#66C4FF", "#77CEFF", "#88D8FF", "#99E2FF"
+                        ];
+                        const rwaShades = [
+                          "#F59E0B", "#F5A61B", "#F6AE2B", "#F7B63B", "#F8BE4B",
+                          "#F9C65B", "#FACC6B", "#FBD47B", "#FCDC8B", "#FDE49B"
+                        ];
+
+                        const shadeIndex = index % 10;
+                        const fillColor = isRWA 
+                          ? rwaShades[shadeIndex] 
+                          : cryptoShades[shadeIndex];
+
+                        return (
+                          <Cell 
+                            key={`cell-${index}`} 
+                            fill={fillColor}
+                          />
+                        );
+                      })}
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>

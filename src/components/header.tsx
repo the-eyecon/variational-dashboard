@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { RefreshCw, Globe, Database, Menu } from "lucide-react";
 import { useSettings } from "./mock-provider";
@@ -10,6 +10,7 @@ export default function Header() {
   const { isMockMode, setIsMockMode, lastUpdated, refresh, isRefreshing, isMobileSidebarOpen, setIsMobileSidebarOpen } = useSettings();
   const [now, setNow] = useState(() => Date.now());
   const [showStatus, setShowStatus] = useState<"idle" | "refreshing" | "complete">("idle");
+  const wasRefreshingRef = useRef(false);
 
   // Keep track of relative elapsed time since last sync
   useEffect(() => {
@@ -24,19 +25,23 @@ export default function Header() {
   // Track refreshing status changes for UI status messages
   useEffect(() => {
     if (isRefreshing) {
-      const timer = setTimeout(() => setShowStatus("refreshing"), 0);
-      return () => clearTimeout(timer);
-    } else if (showStatus === "refreshing") {
-      const timerComplete = setTimeout(() => setShowStatus("complete"), 0);
-      const timerIdle = setTimeout(() => {
-        setShowStatus("idle");
-      }, 5000); // Remove after 5 seconds of completion
-      return () => {
-        clearTimeout(timerComplete);
-        clearTimeout(timerIdle);
-      };
+      wasRefreshingRef.current = true;
+      const timerStart = setTimeout(() => setShowStatus("refreshing"), 0);
+      return () => clearTimeout(timerStart);
+    } else {
+      if (wasRefreshingRef.current) {
+        wasRefreshingRef.current = false;
+        const timerComplete = setTimeout(() => setShowStatus("complete"), 0);
+        const timerIdle = setTimeout(() => {
+          setShowStatus((current) => (current === "complete" ? "idle" : current));
+        }, 5000); // Remove completed message after 5 seconds
+        return () => {
+          clearTimeout(timerComplete);
+          clearTimeout(timerIdle);
+        };
+      }
     }
-  }, [isRefreshing, showStatus]);
+  }, [isRefreshing]);
 
   // Get human-readable page name based on route
   const getPageTitle = () => {
