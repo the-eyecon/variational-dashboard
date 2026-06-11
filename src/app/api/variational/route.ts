@@ -13,10 +13,11 @@ export async function GET() {
     }
     const data = await res.json();
     return NextResponse.json(data);
-  } catch (error: any) {
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
     console.error("Variational proxy error:", error);
     return NextResponse.json(
-      { error: error.message || "Internal server error connecting to Variational" },
+      { error: message || "Internal server error connecting to Variational" },
       { status: 500 }
     );
   }

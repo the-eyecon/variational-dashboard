@@ -2,35 +2,39 @@
 
 import React, { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { RefreshCw, Globe, Database, ArrowUpRight, Menu } from "lucide-react";
+import { RefreshCw, Globe, Database, Menu } from "lucide-react";
 import { useSettings } from "./mock-provider";
-import { formatDateTime } from "../lib/utils";
 
 export default function Header() {
   const pathname = usePathname();
   const { isMockMode, setIsMockMode, lastUpdated, refresh, isRefreshing, isMobileSidebarOpen, setIsMobileSidebarOpen } = useSettings();
-  const [secondsElapsed, setSecondsElapsed] = useState(0);
+  const [now, setNow] = useState(() => Date.now());
   const [showStatus, setShowStatus] = useState<"idle" | "refreshing" | "complete">("idle");
 
   // Keep track of relative elapsed time since last sync
   useEffect(() => {
-    setSecondsElapsed(0);
     const interval = setInterval(() => {
-      setSecondsElapsed((prev) => prev + 1);
+      setNow(Date.now());
     }, 1000);
     return () => clearInterval(interval);
-  }, [lastUpdated]);
+  }, []);
+
+  const secondsElapsed = Math.max(0, Math.floor((now - lastUpdated.getTime()) / 1000));
 
   // Track refreshing status changes for UI status messages
   useEffect(() => {
     if (isRefreshing) {
-      setShowStatus("refreshing");
+      const timer = setTimeout(() => setShowStatus("refreshing"), 0);
+      return () => clearTimeout(timer);
     } else if (showStatus === "refreshing") {
-      setShowStatus("complete");
-      const timer = setTimeout(() => {
+      const timerComplete = setTimeout(() => setShowStatus("complete"), 0);
+      const timerIdle = setTimeout(() => {
         setShowStatus("idle");
       }, 5000); // Remove after 5 seconds of completion
-      return () => clearTimeout(timer);
+      return () => {
+        clearTimeout(timerComplete);
+        clearTimeout(timerIdle);
+      };
     }
   }, [isRefreshing, showStatus]);
 

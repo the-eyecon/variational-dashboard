@@ -97,7 +97,7 @@ export async function getTreasuryAssetsLive(): Promise<TreasuryAsset[]> {
           };
         }
         throw new Error(data.message || "Invalid balance output");
-      } catch (err) {
+      } catch {
         // Return standard mock asset as fallback for this specific token
         const mockAsset = mockTreasuryAssets.find((ma) => ma.symbol === t.symbol)!;
         const priceUSD = priceMap[t.symbol] ?? mockAsset.priceUSD;
@@ -145,7 +145,7 @@ export async function getTreasurySummaryLive(assets: TreasuryAsset[]): Promise<T
       walletCreatedTimestamp: mockTreasurySummary.walletCreatedTimestamp,
       transactionCount: mockTreasurySummary.transactionCount,
     };
-  } catch (error) {
+  } catch {
     return mockTreasurySummary;
   }
 }

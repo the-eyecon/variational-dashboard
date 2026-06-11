@@ -77,6 +77,7 @@ export default function Sidebar() {
             className={cn("flex items-center space-x-2 px-1", collapsed ? "md:hidden" : "block")}
             onClick={() => setIsMobileSidebarOpen(false)}
           >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img 
               src="/wordmark.svg" 
               alt="Variational Logo" 
@@ -89,6 +90,7 @@ export default function Sidebar() {
               className="hidden md:flex mx-auto items-center justify-center w-full"
               onClick={() => setIsMobileSidebarOpen(false)}
             >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img 
                 src="/logo.svg" 
                 alt="V" 

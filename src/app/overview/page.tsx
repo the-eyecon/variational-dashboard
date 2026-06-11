@@ -21,6 +21,7 @@ import Link from "next/link";
 export default function OverviewPage() {
   const { data: protocolData, isLoading: isProtocolLoading, isError: isProtocolError } = useProtocolStats();
   const { data: treasuryData, isLoading: isTreasuryLoading } = useTreasury();
+  const [chartMetric, setChartMetric] = useState<"volume" | "oi">("volume");
 
   const isLoading = isProtocolLoading || isTreasuryLoading;
 
@@ -40,8 +41,6 @@ export default function OverviewPage() {
   const stats = protocolData?.stats;
   const markets = protocolData?.markets || [];
   const treasurySummary = treasuryData?.summary;
-
-  const [chartMetric, setChartMetric] = useState<"volume" | "oi">("volume");
 
   // Process data for Recharts horizontal bar chart based on selected metric (Volume vs. Open Interest)
   const chartData = [...markets]
@@ -311,7 +310,7 @@ export default function OverviewPage() {
                       contentStyle={{ backgroundColor: "#000000", borderColor: "#121216", borderRadius: "4px" }}
                       labelStyle={{ color: "#FFFFFF", fontWeight: "bold", fontSize: 12 }}
                       itemStyle={{ color: "#00E5FF", fontSize: 12 }}
-                      formatter={(v: any) => [formatUSD(v, 2), chartMetric === "volume" ? "24h Volume" : "Open Interest"]}
+                      formatter={(v: unknown) => [formatUSD(Number(v), 2), chartMetric === "volume" ? "24h Volume" : "Open Interest"]}
                     />
                     <Bar dataKey="value" fill="#00E5FF" radius={[0, 4, 4, 0]}>
                       {chartData.map((entry, index) => (

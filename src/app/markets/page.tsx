@@ -50,7 +50,13 @@ function isRWAMarket(marketName: string): boolean {
   return RWA_TICKERS.has(ticker);
 }
 
-const FundingTooltip = ({ active, payload, label }: any) => {
+interface FundingTooltipProps {
+  active?: boolean;
+  payload?: Array<{ value: number }>;
+  label?: string;
+}
+
+const FundingTooltip = ({ active, payload, label }: FundingTooltipProps) => {
   if (active && payload && payload.length) {
     const value = payload[0].value;
     const isPositive = value >= 0;
@@ -179,14 +185,14 @@ export default function MarketsPage() {
   // Filter & Sort & Paginate markets list
   const processedMarkets = useMemo(() => {
     // 1. Filter by search term
-    let result = activeMarkets.filter((m) =>
+    const result = activeMarkets.filter((m) =>
       m.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     // 2. Sort
     result.sort((a, b) => {
-      let aVal = a[sortField];
-      let bVal = b[sortField];
+      const aVal = a[sortField];
+      const bVal = b[sortField];
 
       if (typeof aVal === "string" && typeof bVal === "string") {
         return sortDirection === "asc"
@@ -402,7 +408,7 @@ export default function MarketsPage() {
                       contentStyle={{ backgroundColor: "#09090B", borderColor: "#27272A", borderRadius: "4px" }}
                       labelStyle={{ color: "#FFFFFF", fontWeight: "bold", fontSize: 12 }}
                       itemStyle={{ color: "#095BE5", fontSize: 12 }}
-                      formatter={(v: any) => [formatUSD(v, 2), "Total OI"]}
+                      formatter={(v: unknown) => [formatUSD(Number(v), 2), "Total OI"]}
                     />
                     <Bar dataKey="totalOI" fill="#095BE5" radius={[4, 4, 0, 0]} />
                   </BarChart>
@@ -598,7 +604,7 @@ export default function MarketsPage() {
                     <div className="flex flex-col items-center justify-center space-y-2">
                       <SearchX size={28} className="text-muted" />
                       <span className="text-xs font-bold">No markets found</span>
-                      <span className="text-xs">No results match "{searchTerm}"</span>
+                      <span className="text-xs">No results match &quot;{searchTerm}&quot;</span>
                     </div>
                   </td>
                 </tr>

@@ -7,14 +7,13 @@ import { formatPercent, formatUSD, cn } from "../../lib/utils";
 import { motion } from "framer-motion";
 import { 
   ShieldAlert, 
-  Percent, 
   HelpCircle, 
   TrendingUp, 
   Scale, 
   Activity,
-  ArrowRight,
   TrendingDown
 } from "lucide-react";
+import { Market } from "../../types";
 
 export default function AnalyticsPage() {
   const { data: protocolData, isLoading: isProtocolLoading, isError: isProtocolError } = useProtocolStats();
@@ -71,8 +70,8 @@ export default function AnalyticsPage() {
     else if (concentration > 0.55) concentrationRisk = "high";
 
     // 5. Long / Short Imbalance
-    const totalLongOI = markets.reduce((acc: number, curr: any) => acc + curr.longOI, 0);
-    const totalShortOI = markets.reduce((acc: number, curr: any) => acc + curr.shortOI, 0);
+    const totalLongOI = markets.reduce((acc: number, curr: Market) => acc + curr.longOI, 0);
+    const totalShortOI = markets.reduce((acc: number, curr: Market) => acc + curr.shortOI, 0);
     const imbalanceRatio = totalShortOI > 0 ? totalLongOI / totalShortOI : 1.0;
     let sentiment: "bearish" | "neutral" | "bullish" = "neutral";
     if (imbalanceRatio > 1.05) sentiment = "bullish";
@@ -164,7 +163,7 @@ export default function AnalyticsPage() {
               )}
             </div>
             <p className="text-xs text-text-secondary">
-              Measures the protocol's liquidity backing relative to active perpetual contracts. Higher ratios indicate a larger safety buffer to absorb volatility events.
+              Measures the protocol&apos;s liquidity backing relative to active perpetual contracts. Higher ratios indicate a larger safety buffer to absorb volatility events.
             </p>
           </div>
 
@@ -320,7 +319,7 @@ export default function AnalyticsPage() {
               )}
             </div>
             <p className="text-xs text-text-secondary">
-              Represents the depth of the protocol's loss refund pool against total open interest. Evaluates the pool's ability to cover liquidation deficits under cascading events.
+              Represents the depth of the protocol&apos;s loss refund pool against total open interest. Evaluates the pool&apos;s ability to cover liquidation deficits under cascading events.
             </p>
           </div>
 

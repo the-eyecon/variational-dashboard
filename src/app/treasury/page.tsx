@@ -5,9 +5,7 @@ import { useTreasury } from "../../hooks/use-treasury";
 import KpiCard from "../../components/kpi-card";
 import { 
   formatUSD, 
-  formatCompactUSD, 
   formatNumber, 
-  formatPercent, 
   shortenAddress,
   formatDate
 } from "../../lib/utils";
@@ -28,7 +26,6 @@ import {
   ArrowDownLeft,
   Calendar,
   Layers,
-  ArrowRight,
   ShieldAlert
 } from "lucide-react";
 
@@ -172,7 +169,7 @@ export default function TreasuryPage() {
                       contentStyle={{ backgroundColor: "#09090B", borderColor: "#27272A", borderRadius: "4px" }}
                       labelStyle={{ color: "#FFFFFF", fontWeight: "bold", fontSize: 12 }}
                       itemStyle={{ fontSize: 12 }}
-                      formatter={(v: any) => [formatUSD(v, 2), "Allocation"]}
+                      formatter={(v: unknown) => [formatUSD(Number(v), 2), "Allocation"]}
                     />
                     <Legend
                       verticalAlign="bottom"

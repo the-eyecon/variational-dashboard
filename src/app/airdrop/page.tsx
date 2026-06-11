@@ -1,21 +1,14 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { 
   Gift, 
-  HelpCircle, 
-  Copy, 
-  Check, 
-  Sparkles, 
   Calculator,
   Download,
-  Users,
   Info
 } from "lucide-react";
 import { formatNumber, formatUSD, cn } from "../../lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
-
-const REFERRAL_CODE = "OMNITECCNV2A";
 
 export default function AirdropPage() {
   // Main states matching the screenshot inputs
@@ -205,8 +198,8 @@ export default function AirdropPage() {
       { label: "Distributed Points =", val: `${totalDistributedPoints}M` }
     ];
 
-    let startX = 120;
-    let startY = 390;
+    const startX = 120;
+    const startY = 390;
     ctx.font = "14px sans-serif";
 
     details.forEach((item, idx) => {

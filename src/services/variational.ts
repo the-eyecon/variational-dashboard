@@ -1,6 +1,57 @@
 import { ProtocolStats, Market } from "../types";
 import { mockProtocolStats, mockMarkets } from "../lib/mock-data";
 
+interface RawListing {
+  ticker?: string;
+  symbol?: string;
+  market_id?: string;
+  price?: number;
+  mark_price?: number;
+  markPrice?: number;
+  fundingRate?: number;
+  funding_rate?: number;
+  funding?: number;
+  open_interest?: {
+    long_open_interest?: number;
+    short_open_interest?: number;
+  };
+  longOI?: number;
+  longOpenInterest?: number;
+  shortOI?: number;
+  shortOpenInterest?: number;
+  base_spread_bps?: number;
+  spread?: number;
+  volume_24h?: number;
+  volume24h?: number;
+  quotes?: {
+    base?: {
+      bid?: number;
+      ask?: number;
+    };
+  };
+  bidPrice?: number;
+  bid?: number;
+  askPrice?: number;
+  ask?: number;
+}
+
+interface RawMarketStat {
+  mark_price?: number;
+  price?: number;
+  long_oi?: number;
+  long_open_interest?: number;
+  short_oi?: number;
+  short_open_interest?: number;
+  funding_rate?: number;
+  funding?: number;
+  spread?: number;
+  volume_24h?: number;
+  volume24h?: number;
+  volume?: number;
+  bid?: number;
+  ask?: number;
+}
+
 const getFetchUrl = () => {
   if (typeof window === "undefined") {
     return "https://omni-client-api.prod.ap-northeast-1.variational.io/metadata/stats";
@@ -47,7 +98,7 @@ export async function getMarketsLive(): Promise<Market[]> {
 
     // Map markets from live data.listings array
     if (data.listings && Array.isArray(data.listings)) {
-      return data.listings.map((m: any) => {
+      return data.listings.map((m: RawListing) => {
         const ticker = String(m.ticker ?? m.symbol ?? m.market_id ?? "UNKNOWN");
         // Convert ticker SNT to SNT-USDC-PERP for uniform display
         const name = ticker.endsWith("-USDC-PERP") ? ticker : `${ticker}-USDC-PERP`;
@@ -86,7 +137,7 @@ export async function getMarketsLive(): Promise<Market[]> {
     
     // Check if there is a flat market object mapping (fallback)
     if (data.market_stats && typeof data.market_stats === "object") {
-      return Object.entries(data.market_stats).map(([key, val]: [string, any]) => {
+      return Object.entries(data.market_stats as Record<string, RawMarketStat>).map(([key, val]) => {
         const price = Number(val.mark_price ?? val.price ?? 0);
         const longOI = Number(val.long_oi ?? val.long_open_interest ?? 0);
         const shortOI = Number(val.short_oi ?? val.short_open_interest ?? 0);

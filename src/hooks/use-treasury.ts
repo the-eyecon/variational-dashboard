@@ -39,7 +39,7 @@ export function useTreasury() {
         if (cached) {
           try {
             return JSON.parse(cached);
-          } catch (e) {
+          } catch {
             return undefined;
           }
         }

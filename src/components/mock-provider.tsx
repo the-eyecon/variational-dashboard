@@ -29,7 +29,7 @@ export function MockProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const saved = localStorage.getItem("variational_mock_mode");
     if (saved !== null) {
-      setIsMockModeState(saved === "true");
+      setTimeout(() => setIsMockModeState(saved === "true"), 0);
     }
   }, []);
 

@@ -35,7 +35,7 @@ export function useProtocolStats() {
         if (cached) {
           try {
             return JSON.parse(cached);
-          } catch (e) {
+          } catch {
             return undefined;
           }
         }

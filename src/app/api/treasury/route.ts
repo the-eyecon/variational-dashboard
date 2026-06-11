@@ -1,4 +1,23 @@
 import { NextResponse, NextRequest } from "next/server";
+import { TreasuryTransfer } from "../../../types";
+
+interface BlockscoutTransaction {
+  timestamp: string;
+  hash: string;
+  value?: string;
+  from?: { hash: string };
+  to?: { hash: string };
+}
+
+interface BlockscoutTokenTransfer {
+  token?: { symbol?: string; decimals?: string | number };
+  total?: { value?: string };
+  transaction_hash?: string;
+  tx_hash?: string;
+  timestamp: string;
+  from?: { hash: string };
+  to?: { hash: string };
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,7 +31,7 @@ export async function GET(request: NextRequest) {
       
       if (contractaddress && address) {
         let method = "eth_call";
-        let params: any[] = [];
+        let params: unknown[] = [];
 
         if (contractaddress === "native") {
           method = "eth_getBalance";
@@ -65,7 +84,7 @@ export async function GET(request: NextRequest) {
       const txsUrl = `https://arbitrum.blockscout.com/api/v2/addresses/${address}/transactions`;
       const tokensUrl = `https://arbitrum.blockscout.com/api/v2/addresses/${address}/token-transfers`;
       
-      const mergedTxs: any[] = [];
+      const mergedTxs: TreasuryTransfer[] = [];
       
       try {
         const [txsRes, tokensRes] = await Promise.all([
@@ -76,7 +95,7 @@ export async function GET(request: NextRequest) {
         if (txsRes.ok) {
           const data = await txsRes.json();
           if (data && Array.isArray(data.items)) {
-            data.items.forEach((item: any) => {
+            data.items.forEach((item: BlockscoutTransaction) => {
               const timestamp = item.timestamp;
               const txHash = item.hash;
 
@@ -101,7 +120,7 @@ export async function GET(request: NextRequest) {
         if (tokensRes.ok) {
           const data = await tokensRes.json();
           if (data && Array.isArray(data.items)) {
-            data.items.forEach((transfer: any) => {
+            data.items.forEach((transfer: BlockscoutTokenTransfer) => {
               const tokenSymbol = transfer.token?.symbol || "ERC20";
               const decimals = Number(transfer.token?.decimals || 18);
               const rawValue = BigInt(transfer.total?.value || "0");
@@ -111,7 +130,7 @@ export async function GET(request: NextRequest) {
                 const isOutgoing = transfer.from?.hash?.toLowerCase() === address.toLowerCase();
                 
                 mergedTxs.push({
-                  hash: transfer.transaction_hash || transfer.tx_hash,
+                  hash: transfer.transaction_hash || transfer.tx_hash || "",
                   timestamp: transfer.timestamp,
                   direction: isOutgoing ? "outgoing" : "incoming",
                   token: tokenSymbol,
@@ -135,10 +154,11 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({ error: "Invalid action or parameters" }, { status: 400 });
-  } catch (error: any) {
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
     console.error("Treasury API proxy error:", error);
     return NextResponse.json(
-      { error: error.message || "Internal server error connecting to Treasury API" },
+      { error: message || "Internal server error connecting to Treasury API" },
       { status: 500 }
     );
   }

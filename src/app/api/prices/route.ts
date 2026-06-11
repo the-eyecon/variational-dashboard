@@ -16,10 +16,11 @@ export async function GET() {
     }
     const data = await res.json();
     return NextResponse.json(data);
-  } catch (error: any) {
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
     console.error("CoinGecko price proxy error:", error);
     return NextResponse.json(
-      { error: error.message || "Internal server error connecting to CoinGecko" },
+      { error: message || "Internal server error connecting to CoinGecko" },
       { status: 500 }
     );
   }
