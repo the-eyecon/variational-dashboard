@@ -19,8 +19,10 @@ const SettingsContext = createContext<SettingsContextType | undefined>(undefined
 export function MockProvider({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient();
   
-  // Default to mock mode since it provides high fidelity without API keys or CORS issues
-  const [isMockMode, setIsMockModeState] = useState<boolean>(true);
+  // Default to mock mode in development, but live mode in production
+  const [isMockMode, setIsMockModeState] = useState<boolean>(
+    process.env.NODE_ENV !== "production"
+  );
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState<boolean>(false);

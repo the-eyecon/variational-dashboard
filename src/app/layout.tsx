@@ -39,9 +39,6 @@ export default function RootLayout({
 
         <Providers>
           <div className="flex flex-col h-full w-full z-10 relative overflow-hidden">
-            {/* Top moving banner */}
-            <MarqueeBanner />
-
             <div className="flex flex-1 w-full min-w-0 overflow-hidden">
               {/* Sidebar navigation */}
               <Sidebar />
@@ -64,6 +61,9 @@ export default function RootLayout({
                 </main>
               </div>
             </div>
+
+            {/* Bottom moving banner */}
+            <MarqueeBanner />
           </div>
         </Providers>
       </body>

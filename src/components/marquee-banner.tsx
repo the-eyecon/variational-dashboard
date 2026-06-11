@@ -4,7 +4,7 @@ import React from "react";
 
 export default function MarqueeBanner() {
   return (
-    <div className="overflow-hidden bg-accent-blue/10 border-b border-accent-blue/20 py-2 relative flex select-none z-30">
+    <div className="overflow-hidden bg-accent-blue/10 border-t border-accent-blue/20 py-2 relative flex select-none z-30">
       <style dangerouslySetInnerHTML={{__html: `
         @keyframes marquee-global {
           0% { transform: translate3d(0, 0, 0); }
