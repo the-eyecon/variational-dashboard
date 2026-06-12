@@ -70,7 +70,7 @@ export default function Sidebar() {
         )}
       >
         {/* Brand Header */}
-        <div className="h-16 flex items-center justify-between px-4 border-b border-border">
+        <div className={cn("h-16 flex items-center border-b border-border relative", collapsed ? "justify-center px-2" : "justify-between px-4")}>
           {/* Logo Brand / Icon */}
           <Link 
             href="/overview" 
@@ -87,20 +87,20 @@ export default function Sidebar() {
           {collapsed && (
             <Link 
               href="/overview" 
-              className="hidden md:flex mx-auto items-center justify-center w-full"
+              className="hidden md:flex items-center justify-center"
               onClick={() => setIsMobileSidebarOpen(false)}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img 
                 src="/logo.svg" 
                 alt="V" 
-                className="h-12 w-12 object-contain"
+                className="h-7 w-7 object-contain"
               />
             </Link>
           )}
 
           {/* Toggle controls */}
-          <div className="flex items-center space-x-1">
+          <div className={cn("flex items-center", collapsed ? "absolute -right-3 top-5 z-50" : "space-x-1")}>
             {/* Mobile Close Button */}
             <button
               onClick={() => setIsMobileSidebarOpen(false)}
@@ -113,11 +113,16 @@ export default function Sidebar() {
             {/* Desktop Collapse Button */}
             <button
               onClick={() => setCollapsed(!collapsed)}
-              className="text-text-secondary hover:text-white p-1 rounded hover:bg-border transition-colors hidden md:block"
+              className={cn(
+                "text-text-secondary hover:text-white transition-colors hidden md:flex items-center justify-center",
+                collapsed 
+                  ? "w-6 h-6 rounded-full bg-card border border-border shadow-[0_2px_8px_rgba(0,0,0,0.5)] hover:bg-card-hover" 
+                  : "p-1 rounded hover:bg-border"
+              )}
               title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
               aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             >
-              {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+              {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={16} />}
             </button>
           </div>
         </div>

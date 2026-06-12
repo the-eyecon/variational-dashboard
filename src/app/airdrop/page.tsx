@@ -12,11 +12,11 @@ import { motion, AnimatePresence } from "framer-motion";
 
 export default function AirdropPage() {
   // Main states matching the screenshot inputs
-  const [userPoints, setUserPoints] = useState<number>(1000);
+  const [userPoints, setUserPoints] = useState<number>(100);
   const [twitterUsername, setTwitterUsername] = useState<string>("");
-  const [fdv, setFdv] = useState<number>(500);
-  const [fdvUnit, setFdvUnit] = useState<"M" | "B">("M");
-  const [airdropPercent, setAirdropPercent] = useState<number>(15);
+  const [fdv, setFdv] = useState<number>(2);
+  const [fdvUnit, setFdvUnit] = useState<"M" | "B">("B");
+  const [airdropPercent, setAirdropPercent] = useState<number>(25);
   const totalDistributedPoints = 9; // locked to 9M
   
   // Interactive UI feedback states

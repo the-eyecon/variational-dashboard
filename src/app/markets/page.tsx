@@ -52,17 +52,25 @@ function isRWAMarket(marketName: string): boolean {
 
 interface FundingTooltipProps {
   active?: boolean;
-  payload?: Array<{ value: number }>;
+  payload?: Array<{
+    value: number;
+    payload: {
+      name: string;
+      fundingRate: number;
+    };
+  }>;
   label?: string;
 }
 
 const FundingTooltip = ({ active, payload, label }: FundingTooltipProps) => {
   if (active && payload && payload.length) {
     const value = payload[0].value;
+    const data = payload[0].payload;
+    const ticker = data?.name || label;
     const isPositive = value >= 0;
     return (
       <div className="bg-[#09090B] border border-[#27272A] p-2.5 rounded shadow-xl text-xs font-mono">
-        <div className="font-bold text-white uppercase mb-1">{label}</div>
+        <div className="font-bold text-white uppercase mb-1">{ticker}</div>
         <div className="flex items-center space-x-1.5">
           <span className="text-text-secondary">Funding (8h):</span>
           <span className={`font-bold ${isPositive ? "text-success" : "text-danger"}`}>

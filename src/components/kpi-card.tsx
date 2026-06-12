@@ -124,7 +124,7 @@ export default function KpiCard({
         )}
         
         {subtitle && (
-          <span className="text-muted font-medium select-none truncate max-w-[70%]">
+          <span className="text-white font-medium select-none truncate max-w-[70%]">
             {subtitle}
           </span>
         )}
