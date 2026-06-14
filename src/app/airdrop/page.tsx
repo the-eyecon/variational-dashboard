@@ -13,37 +13,77 @@ import { motion, AnimatePresence } from "framer-motion";
 export default function AirdropPage() {
   // Main states matching the screenshot inputs
   const [userPoints, setUserPoints] = useState<number>(100);
-  const [twitterUsername, setTwitterUsername] = useState<string>("");
-  const [fdv, setFdv] = useState<number>(2);
+  const [fdv, setFdv] = useState<number | "">(2);
   const [fdvUnit, setFdvUnit] = useState<"M" | "B">("B");
   const [airdropPercent, setAirdropPercent] = useState<number>(25);
+  const [pricePerPoint, setPricePerPoint] = useState<number | "">(55.5556);
   const totalDistributedPoints = 9; // locked to 9M
   
   // Interactive UI feedback states
   const [isCalculating, setIsCalculating] = useState<boolean>(false);
   const [triggerFlash, setTriggerFlash] = useState<boolean>(false);
 
+  // Sync Handlers
+  const handleFdvChange = (val: string) => {
+    if (val === "") {
+      setFdv("");
+      setPricePerPoint("");
+      return;
+    }
+    const num = Math.max(0, Number(val));
+    setFdv(num);
+    const absoluteFDV = num * (fdvUnit === "B" ? 1e9 : 1e6);
+    const ppp = (absoluteFDV * (airdropPercent / 100)) / (9 * 1e6);
+    setPricePerPoint(Math.round(ppp * 10000) / 10000);
+  };
+
+  const handleFdvUnitChange = (newUnit: "M" | "B") => {
+    setFdvUnit(newUnit);
+    if (fdv === "") return;
+    const absoluteFDV = fdv * (newUnit === "B" ? 1e9 : 1e6);
+    const ppp = (absoluteFDV * (airdropPercent / 100)) / (9 * 1e6);
+    setPricePerPoint(Math.round(ppp * 10000) / 10000);
+  };
+
+  const handleAirdropPercentChange = (newPercent: number) => {
+    setAirdropPercent(newPercent);
+    if (fdv === "") return;
+    const absoluteFDV = fdv * (fdvUnit === "B" ? 1e9 : 1e6);
+    const ppp = (absoluteFDV * (newPercent / 100)) / (9 * 1e6);
+    setPricePerPoint(Math.round(ppp * 10000) / 10000);
+  };
+
+  const handlePricePerPointChange = (val: string) => {
+    if (val === "") {
+      setPricePerPoint("");
+      setFdv("");
+      return;
+    }
+    const num = Math.max(0, Number(val));
+    setPricePerPoint(num);
+    const percentFraction = airdropPercent / 100;
+    const absoluteFDV = percentFraction > 0 ? (num * 9 * 1e6) / percentFraction : 0;
+    if (absoluteFDV >= 1e9) {
+      const calculatedFdv = absoluteFDV / 1e9;
+      setFdv(Math.round(calculatedFdv * 100) / 100);
+      setFdvUnit("B");
+    } else {
+      const calculatedFdv = absoluteFDV / 1e6;
+      setFdv(Math.round(calculatedFdv * 100) / 100);
+      setFdvUnit("M");
+    }
+  };
+
   // Perform calculations
   const calculations = useMemo(() => {
-    // 1. FDV Absolute Value
-    const absoluteFDV = fdv * (fdvUnit === "B" ? 1e9 : 1e6);
-    
-    // 2. Total Distributed Points Absolute Value
-    const absoluteTotalPoints = totalDistributedPoints * 1e6;
-    
-    // 3. Price per point = (FDV * Airdrop%) / Total Points
-    const pricePerPoint = absoluteTotalPoints > 0 
-      ? (absoluteFDV * (airdropPercent / 100)) / absoluteTotalPoints 
-      : 0;
-      
-    // 4. Estimated Airdrop Value
-    const finalAirdropValue = userPoints * pricePerPoint;
+    const ppp = pricePerPoint === "" ? 0 : pricePerPoint;
+    const finalAirdropValue = userPoints * ppp;
     
     return {
-      pricePerPoint,
+      pricePerPoint: ppp,
       finalAirdropValue
     };
-  }, [userPoints, fdv, fdvUnit, airdropPercent]);
+  }, [userPoints, pricePerPoint]);
 
   // Handle trigger calculation effect
   const handleCalculate = (e: React.FormEvent) => {
@@ -59,7 +99,7 @@ export default function AirdropPage() {
   // Share calculation on Twitter/X
   const handleShareTwitter = () => {
     const formattedVal = formatUSD(calculations.finalAirdropValue, 0);
-    const text = `Just estimated my @variational airdrop value using the Points Calculator! 💎\n\n• Points: ${formatNumber(userPoints)}\n• FDV: $${fdv}${fdvUnit}\n• Airdrop Value: ${formattedVal} USD\n\nTry it yourself with referral code OMNITECCNV2A for a 1.125x boost! 🚀`;
+    const text = `Just estimated my @variational airdrop value using the Points Calculator! 💎\n\n• Points: ${formatNumber(userPoints)}\n• FDV: ${fdv === "" ? "$0" : `$${fdv}${fdvUnit}`}\n• Airdrop Value: ${formattedVal} USD\n\nTry it yourself with referral code OMNITECCNV2A for a 1.125x boost! 🚀`;
     const shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(typeof window !== "undefined" ? window.location.origin + "/airdrop" : "")}`;
     window.open(shareUrl, "_blank", "noopener,noreferrer");
   };
@@ -193,7 +233,7 @@ export default function AirdropPage() {
     const details = [
       { label: "Your points =", val: formatNumber(userPoints) },
       { label: "Price per point =", val: `$${calculations.pricePerPoint.toFixed(4)} USD` },
-      { label: "Assumed FDV =", val: `$${fdv}${fdvUnit}` },
+      { label: "Assumed FDV =", val: fdv === "" ? "$0" : `$${fdv}${fdvUnit}` },
       { label: "Airdrop Allocation =", val: `${airdropPercent}%` },
       { label: "Distributed Points =", val: `${totalDistributedPoints}M` }
     ];
@@ -220,12 +260,7 @@ export default function AirdropPage() {
       ctx.font = "14px sans-serif"; // reset
     });
 
-    // Handle Twitter watermark info
-    if (twitterUsername) {
-      ctx.fillStyle = "#00E5FF";
-      ctx.font = "bold 13px sans-serif";
-      ctx.fillText(`Simulated for @${twitterUsername.replace("@", "")}`, 100, 540);
-    }
+
 
     // Footnote
     ctx.fillStyle = "#4A4D56";
@@ -289,39 +324,44 @@ export default function AirdropPage() {
                   </div>
                 </div>
 
-                {/* Twitter / X Username */}
+
+
+                {/* Price per Point (USD) */}
                 <div className="space-y-1.5">
-                  <label className="text-xs uppercase tracking-wider text-text-secondary font-bold">
-                    Twitter / X username <span className="text-muted font-normal">(optional)</span>
+                  <label className="text-xs uppercase tracking-wider text-text-secondary font-bold flex items-center justify-between">
+                    <span>Price per Point (USD)</span>
+                    <span className="text-[10px] text-muted font-normal lowercase">(updates fdv)</span>
                   </label>
                   <div className="bg-[#030305] border border-[#14151A] rounded px-3 py-2 flex items-center">
                     <input
-                      type="text"
-                      placeholder="@username"
-                      value={twitterUsername}
-                      onChange={(e) => setTwitterUsername(e.target.value)}
-                      className="bg-transparent w-full text-white text-sm focus:outline-none placeholder-[#4A4D56]"
+                      type="number"
+                      step="0.0001"
+                      min="0"
+                      value={pricePerPoint || ""}
+                      onChange={(e) => handlePricePerPointChange(e.target.value)}
+                      className="bg-transparent w-full text-white text-sm focus:outline-none font-mono"
                     />
                   </div>
                 </div>
 
                 {/* FDV (Fully Diluted Valuation) */}
                 <div className="space-y-1.5">
-                  <label className="text-xs uppercase tracking-wider text-text-secondary font-bold">
-                    FDV
+                  <label className="text-xs uppercase tracking-wider text-text-secondary font-bold flex items-center justify-between">
+                    <span>FDV</span>
+                    <span className="text-[10px] text-muted font-normal lowercase">(updates price)</span>
                   </label>
                   <div className="flex rounded border border-[#14151A] overflow-hidden bg-[#030305]">
                     <input
                       type="number"
                       min="0"
                       value={fdv || ""}
-                      onChange={(e) => setFdv(Math.max(0, Number(e.target.value)))}
+                      onChange={(e) => handleFdvChange(e.target.value)}
                       className="bg-transparent flex-1 px-3 py-2 text-white text-sm focus:outline-none font-mono"
                     />
                     <div className="flex border-l border-[#14151A]">
                       <button
                         type="button"
-                        onClick={() => setFdvUnit("M")}
+                        onClick={() => handleFdvUnitChange("M")}
                         className={cn(
                           "px-4 py-2 text-xs font-mono font-bold transition-all duration-150 cursor-pointer",
                           fdvUnit === "M" ? "bg-white text-black" : "text-[#8E919A] hover:text-white"
@@ -331,7 +371,7 @@ export default function AirdropPage() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => setFdvUnit("B")}
+                        onClick={() => handleFdvUnitChange("B")}
                         className={cn(
                           "px-4 py-2 text-xs font-mono font-bold transition-all duration-150 border-l border-[#14151A] cursor-pointer",
                           fdvUnit === "B" ? "bg-white text-black" : "text-[#8E919A] hover:text-white"
