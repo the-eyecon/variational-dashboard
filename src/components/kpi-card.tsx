@@ -37,7 +37,7 @@ export default function KpiCard({
       setIsChanged(true);
       const timer = setTimeout(() => {
         setIsChanged(false);
-      }, 10000); // Highlight for 10 seconds
+      }, 3000); // Highlight for 3 seconds
       
       prevValueRef.current = value;
       return () => clearTimeout(timer);
