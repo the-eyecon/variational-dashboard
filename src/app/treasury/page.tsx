@@ -63,8 +63,8 @@ export default function TreasuryPage() {
     );
   }
 
-  // Extracted structures
-  const assets = treasuryData?.assets || [];
+  // Extracted structures (filtering out assets with zero balance)
+  const assets = (treasuryData?.assets || []).filter((a) => a.amount > 0);
   const transfers = treasuryData?.transfers || [];
   const summary = treasuryData?.summary;
 

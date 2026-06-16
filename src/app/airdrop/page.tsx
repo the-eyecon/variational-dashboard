@@ -16,7 +16,8 @@ export default function AirdropPage() {
   const [fdv, setFdv] = useState<number | "">(2);
   const [fdvUnit, setFdvUnit] = useState<"M" | "B">("B");
   const [airdropPercent, setAirdropPercent] = useState<number>(25);
-  const [pricePerPoint, setPricePerPoint] = useState<number | "">(55.5556);
+  const [pricePerPoint, setPricePerPoint] = useState<number | "">(55.56);
+  const [lastEdited, setLastEdited] = useState<"fdv" | "price">("fdv");
   const totalDistributedPoints = 9; // locked to 9M
   
   // Interactive UI feedback states
@@ -25,51 +26,100 @@ export default function AirdropPage() {
 
   // Sync Handlers
   const handleFdvChange = (val: string) => {
+    setLastEdited("fdv");
     if (val === "") {
       setFdv("");
       setPricePerPoint("");
       return;
     }
-    const num = Math.max(0, Number(val));
-    setFdv(num);
-    const absoluteFDV = num * (fdvUnit === "B" ? 1e9 : 1e6);
+    
+    // Restrict typed value to 1 decimal place to prevent entering more than that
+    let cleanVal = val;
+    const dotIdx = val.indexOf(".");
+    if (dotIdx !== -1 && val.length - dotIdx - 1 > 1) {
+      cleanVal = val.slice(0, dotIdx + 2);
+    }
+    const num = Number(cleanVal);
+    if (isNaN(num)) return;
+    const clampedNum = Math.max(0, num);
+    setFdv(clampedNum);
+    
+    // Calculate PPP based on FDV (round to 2 decimal places)
+    const absoluteFDV = clampedNum * (fdvUnit === "B" ? 1e9 : 1e6);
     const ppp = (absoluteFDV * (airdropPercent / 100)) / (9 * 1e6);
-    setPricePerPoint(Math.round(ppp * 10000) / 10000);
+    setPricePerPoint(Math.round(ppp * 100) / 100);
   };
 
   const handleFdvUnitChange = (newUnit: "M" | "B") => {
+    setLastEdited("fdv");
     setFdvUnit(newUnit);
     if (fdv === "") return;
-    const absoluteFDV = fdv * (newUnit === "B" ? 1e9 : 1e6);
+    // Calculate PPP based on FDV (round to 2 decimal places)
+    const absoluteFDV = Number(fdv) * (newUnit === "B" ? 1e9 : 1e6);
     const ppp = (absoluteFDV * (airdropPercent / 100)) / (9 * 1e6);
-    setPricePerPoint(Math.round(ppp * 10000) / 10000);
+    setPricePerPoint(Math.round(ppp * 100) / 100);
   };
 
-  const handleAirdropPercentChange = (newPercent: number) => {
-    setAirdropPercent(newPercent);
-    if (fdv === "") return;
-    const absoluteFDV = fdv * (fdvUnit === "B" ? 1e9 : 1e6);
-    const ppp = (absoluteFDV * (newPercent / 100)) / (9 * 1e6);
-    setPricePerPoint(Math.round(ppp * 10000) / 10000);
+  const handleAirdropPercentChange = (newPercent: number | string) => {
+    const num = Math.min(100, Math.max(0, Number(newPercent)));
+    setAirdropPercent(num);
+    
+    if (lastEdited === "price") {
+      if (pricePerPoint === "") {
+        setFdv("");
+        return;
+      }
+      const percentFraction = num / 100;
+      const absoluteFDV = percentFraction > 0 ? (Number(pricePerPoint) * 9 * 1e6) / percentFraction : 0;
+      if (absoluteFDV >= 1e9) {
+        const calculatedFdv = absoluteFDV / 1e9;
+        setFdv(Math.round(calculatedFdv * 10) / 10);
+        setFdvUnit("B");
+      } else {
+        const calculatedFdv = absoluteFDV / 1e6;
+        setFdv(Math.round(calculatedFdv * 10) / 10);
+        setFdvUnit("M");
+      }
+    } else {
+      if (fdv === "") {
+        setPricePerPoint("");
+        return;
+      }
+      const absoluteFDV = Number(fdv) * (fdvUnit === "B" ? 1e9 : 1e6);
+      const ppp = (absoluteFDV * (num / 100)) / (9 * 1e6);
+      setPricePerPoint(Math.round(ppp * 100) / 100);
+    }
   };
 
   const handlePricePerPointChange = (val: string) => {
+    setLastEdited("price");
     if (val === "") {
       setPricePerPoint("");
       setFdv("");
       return;
     }
-    const num = Math.max(0, Number(val));
-    setPricePerPoint(num);
+    
+    // Restrict typed value to 2 decimal places to prevent entering more than that
+    let cleanVal = val;
+    const dotIdx = val.indexOf(".");
+    if (dotIdx !== -1 && val.length - dotIdx - 1 > 2) {
+      cleanVal = val.slice(0, dotIdx + 3);
+    }
+    const num = Number(cleanVal);
+    if (isNaN(num)) return;
+    const clampedNum = Math.max(0, num);
+    setPricePerPoint(clampedNum);
+    
+    // Calculate FDV based on PPP (round to 1 decimal place)
     const percentFraction = airdropPercent / 100;
-    const absoluteFDV = percentFraction > 0 ? (num * 9 * 1e6) / percentFraction : 0;
+    const absoluteFDV = percentFraction > 0 ? (clampedNum * 9 * 1e6) / percentFraction : 0;
     if (absoluteFDV >= 1e9) {
       const calculatedFdv = absoluteFDV / 1e9;
-      setFdv(Math.round(calculatedFdv * 100) / 100);
+      setFdv(Math.round(calculatedFdv * 10) / 10);
       setFdvUnit("B");
     } else {
       const calculatedFdv = absoluteFDV / 1e6;
-      setFdv(Math.round(calculatedFdv * 100) / 100);
+      setFdv(Math.round(calculatedFdv * 10) / 10);
       setFdvUnit("M");
     }
   };
@@ -232,7 +282,7 @@ export default function AirdropPage() {
     // Details Grid Layout
     const details = [
       { label: "Your points =", val: formatNumber(userPoints) },
-      { label: "Price per point =", val: `$${calculations.pricePerPoint.toFixed(4)} USD` },
+      { label: "Price per point =", val: `$${calculations.pricePerPoint.toFixed(2)} USD` },
       { label: "Assumed FDV =", val: fdv === "" ? "$0" : `$${fdv}${fdvUnit}` },
       { label: "Airdrop Allocation =", val: `${airdropPercent}%` },
       { label: "Distributed Points =", val: `${totalDistributedPoints}M` }
@@ -335,7 +385,7 @@ export default function AirdropPage() {
                   <div className="bg-[#030305] border border-[#14151A] rounded px-3 py-2 flex items-center">
                     <input
                       type="number"
-                      step="0.0001"
+                      step="0.01"
                       min="0"
                       value={pricePerPoint || ""}
                       onChange={(e) => handlePricePerPointChange(e.target.value)}
@@ -353,6 +403,7 @@ export default function AirdropPage() {
                   <div className="flex rounded border border-[#14151A] overflow-hidden bg-[#030305]">
                     <input
                       type="number"
+                      step="0.1"
                       min="0"
                       value={fdv || ""}
                       onChange={(e) => handleFdvChange(e.target.value)}
@@ -396,7 +447,7 @@ export default function AirdropPage() {
                         min="1"
                         max="100"
                         value={airdropPercent}
-                        onChange={(e) => setAirdropPercent(Math.min(100, Math.max(0, Number(e.target.value))))}
+                        onChange={(e) => handleAirdropPercentChange(e.target.value)}
                         className="bg-transparent text-right text-xs font-mono text-white focus:outline-none w-full"
                       />
                       <span className="text-xs font-mono text-[#8E919A]">%</span>
@@ -409,7 +460,7 @@ export default function AirdropPage() {
                     max="50"
                     step="0.5"
                     value={airdropPercent}
-                    onChange={(e) => setAirdropPercent(Number(e.target.value))}
+                    onChange={(e) => handleAirdropPercentChange(Number(e.target.value))}
                     className="custom-slider w-full"
                   />
 
@@ -423,7 +474,7 @@ export default function AirdropPage() {
                         <button
                           key={val}
                           type="button"
-                          onClick={() => setAirdropPercent(val)}
+                          onClick={() => handleAirdropPercentChange(val)}
                           className="absolute flex flex-col items-center cursor-pointer group focus:outline-none"
                           style={{ left: `calc(8px + ${percentage}% - ${percentage * 0.16}px)`, transform: "translateX(-50%)" }}
                         >
@@ -505,7 +556,7 @@ export default function AirdropPage() {
                 </div>
                 <div className="flex justify-between items-center p-3">
                   <span className="text-text-secondary">Price per point =</span>
-                  <span className="text-white font-bold">${calculations.pricePerPoint.toFixed(4)} USD</span>
+                  <span className="text-white font-bold">${calculations.pricePerPoint.toFixed(2)} USD</span>
                 </div>
                 <div className="flex justify-between items-center p-3 bg-card font-bold">
                   <span className="text-accent-blue">Est. Airdrop Value =</span>
