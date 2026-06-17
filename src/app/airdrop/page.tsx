@@ -488,9 +488,8 @@ export default function AirdropPage() {
                           />
                           <span 
                             className={cn(
-                              "text-[10px] sm:text-xs font-mono select-none mt-1 transition-colors",
-                              airdropPercent === val ? "text-white font-bold" : "text-[#8E919A]",
-                              (val % 10 !== 0) && "hidden sm:inline"
+                              "text-[9px] sm:text-xs font-mono select-none mt-1 transition-colors",
+                              airdropPercent === val ? "text-white font-bold" : "text-[#8E919A]"
                             )}
                           >
                             {val}%
