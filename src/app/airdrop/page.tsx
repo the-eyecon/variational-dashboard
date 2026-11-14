@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
 import { 
   Gift, 
   Calculator,
@@ -10,21 +10,38 @@ import {
 import { formatNumber, formatUSD, cn } from "../../lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 
+const AIRDROP_PERCENT = 32;
+const TOTAL_DISTRIBUTED_POINTS = 9; // locked to 9M
+
 export default function AirdropPage() {
-  // Main states matching the screenshot inputs
+  // Main states matching the inputs
   const [userPoints, setUserPoints] = useState<number>(100);
   const [fdv, setFdv] = useState<number | "">(2);
   const [fdvUnit, setFdvUnit] = useState<"M" | "B">("B");
-  const [airdropPercent, setAirdropPercent] = useState<number>(25);
-  const [pricePerPoint, setPricePerPoint] = useState<number | "">(55.56);
-  const [lastEdited, setLastEdited] = useState<"fdv" | "price">("fdv");
-  const totalDistributedPoints = 9; // locked to 9M
+  // Default pricePerPoint at 2B FDV and 32% allocation: (2e9 * 0.32) / (9e6) = 71.11
+  const [pricePerPoint, setPricePerPoint] = useState<number | "">(71.11);
+  const [, setLastEdited] = useState<"fdv" | "price">("fdv");
   
   // Interactive UI feedback states
   const [isCalculating, setIsCalculating] = useState<boolean>(false);
   const [triggerFlash, setTriggerFlash] = useState<boolean>(false);
 
-  // Sync Handlers
+  // Calculated values - updated ONLY when the user clicks the "Calculate" button
+  const [calculatedData, setCalculatedData] = useState<{
+    userPoints: number;
+    pricePerPoint: number;
+    fdv: number | "";
+    fdvUnit: "M" | "B";
+    finalAirdropValue: number;
+  }>({
+    userPoints: 100,
+    pricePerPoint: 71.11,
+    fdv: 2,
+    fdvUnit: "B",
+    finalAirdropValue: 7111,
+  });
+
+  // Sync Handlers between FDV and Price Per Point using confirmed 32% allocation
   const handleFdvChange = (val: string) => {
     setLastEdited("fdv");
     if (val === "") {
@@ -44,9 +61,9 @@ export default function AirdropPage() {
     const clampedNum = Math.max(0, num);
     setFdv(clampedNum);
     
-    // Calculate PPP based on FDV (round to 2 decimal places)
+    // Calculate PPP based on FDV (round to 2 decimal places) with confirmed 32%
     const absoluteFDV = clampedNum * (fdvUnit === "B" ? 1e9 : 1e6);
-    const ppp = (absoluteFDV * (airdropPercent / 100)) / (9 * 1e6);
+    const ppp = (absoluteFDV * (AIRDROP_PERCENT / 100)) / (TOTAL_DISTRIBUTED_POINTS * 1e6);
     setPricePerPoint(Math.round(ppp * 100) / 100);
   };
 
@@ -54,41 +71,10 @@ export default function AirdropPage() {
     setLastEdited("fdv");
     setFdvUnit(newUnit);
     if (fdv === "") return;
-    // Calculate PPP based on FDV (round to 2 decimal places)
+    // Calculate PPP based on FDV (round to 2 decimal places) with confirmed 32%
     const absoluteFDV = Number(fdv) * (newUnit === "B" ? 1e9 : 1e6);
-    const ppp = (absoluteFDV * (airdropPercent / 100)) / (9 * 1e6);
+    const ppp = (absoluteFDV * (AIRDROP_PERCENT / 100)) / (TOTAL_DISTRIBUTED_POINTS * 1e6);
     setPricePerPoint(Math.round(ppp * 100) / 100);
-  };
-
-  const handleAirdropPercentChange = (newPercent: number | string) => {
-    const num = Math.min(100, Math.max(0, Number(newPercent)));
-    setAirdropPercent(num);
-    
-    if (lastEdited === "price") {
-      if (pricePerPoint === "") {
-        setFdv("");
-        return;
-      }
-      const percentFraction = num / 100;
-      const absoluteFDV = percentFraction > 0 ? (Number(pricePerPoint) * 9 * 1e6) / percentFraction : 0;
-      if (absoluteFDV >= 1e9) {
-        const calculatedFdv = absoluteFDV / 1e9;
-        setFdv(Math.round(calculatedFdv * 10) / 10);
-        setFdvUnit("B");
-      } else {
-        const calculatedFdv = absoluteFDV / 1e6;
-        setFdv(Math.round(calculatedFdv * 10) / 10);
-        setFdvUnit("M");
-      }
-    } else {
-      if (fdv === "") {
-        setPricePerPoint("");
-        return;
-      }
-      const absoluteFDV = Number(fdv) * (fdvUnit === "B" ? 1e9 : 1e6);
-      const ppp = (absoluteFDV * (num / 100)) / (9 * 1e6);
-      setPricePerPoint(Math.round(ppp * 100) / 100);
-    }
   };
 
   const handlePricePerPointChange = (val: string) => {
@@ -110,9 +96,9 @@ export default function AirdropPage() {
     const clampedNum = Math.max(0, num);
     setPricePerPoint(clampedNum);
     
-    // Calculate FDV based on PPP (round to 1 decimal place)
-    const percentFraction = airdropPercent / 100;
-    const absoluteFDV = percentFraction > 0 ? (clampedNum * 9 * 1e6) / percentFraction : 0;
+    // Calculate FDV based on PPP (round to 1 decimal place) with confirmed 32%
+    const percentFraction = AIRDROP_PERCENT / 100;
+    const absoluteFDV = percentFraction > 0 ? (clampedNum * TOTAL_DISTRIBUTED_POINTS * 1e6) / percentFraction : 0;
     if (absoluteFDV >= 1e9) {
       const calculatedFdv = absoluteFDV / 1e9;
       setFdv(Math.round(calculatedFdv * 10) / 10);
@@ -124,22 +110,24 @@ export default function AirdropPage() {
     }
   };
 
-  // Perform calculations
-  const calculations = useMemo(() => {
-    const ppp = pricePerPoint === "" ? 0 : pricePerPoint;
-    const finalAirdropValue = userPoints * ppp;
-    
-    return {
-      pricePerPoint: ppp,
-      finalAirdropValue
-    };
-  }, [userPoints, pricePerPoint]);
-
-  // Handle trigger calculation effect
+  // Perform calculation ONLY when user clicks on Calculate
   const handleCalculate = (e: React.FormEvent) => {
     e.preventDefault();
     setIsCalculating(true);
     setTriggerFlash(true);
+
+    const pts = Number(userPoints) || 0;
+    const ppp = pricePerPoint === "" ? 0 : Number(pricePerPoint);
+    const finalVal = pts * ppp;
+
+    setCalculatedData({
+      userPoints: pts,
+      pricePerPoint: ppp,
+      fdv,
+      fdvUnit,
+      finalAirdropValue: finalVal,
+    });
+
     setTimeout(() => {
       setIsCalculating(false);
       setTriggerFlash(false);
@@ -148,8 +136,8 @@ export default function AirdropPage() {
 
   // Share calculation on Twitter/X
   const handleShareTwitter = () => {
-    const formattedVal = formatUSD(calculations.finalAirdropValue, 0);
-    const text = `Just estimated my @variational airdrop value using the Points Calculator! 💎\n\n• Points: ${formatNumber(userPoints)}\n• FDV: ${fdv === "" ? "$0" : `$${fdv}${fdvUnit}`}\n• Airdrop Value: ${formattedVal} USD\n\nTry it yourself with referral code OMNITECCNV2A for a 1.125x boost! 🚀`;
+    const formattedVal = formatUSD(calculatedData.finalAirdropValue, 0);
+    const text = `Just estimated my @variational airdrop value using the Points Calculator! 💎\n\n• Points: ${formatNumber(calculatedData.userPoints)}\n• FDV: ${calculatedData.fdv === "" ? "$0" : `$${calculatedData.fdv}${calculatedData.fdvUnit}`}\n• Allocation: 32% (Confirmed)\n• Airdrop Value: ${formattedVal} USD\n\nTry it yourself with referral code OMNITECCNV2A for a 1.125x boost! 🚀`;
     const shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(typeof window !== "undefined" ? window.location.origin + "/airdrop" : "")}`;
     window.open(shareUrl, "_blank", "noopener,noreferrer");
   };
@@ -273,7 +261,7 @@ export default function AirdropPage() {
 
     ctx.fillStyle = "#FFFFFF";
     ctx.font = "bold 60px sans-serif";
-    ctx.fillText(formatUSD(calculations.finalAirdropValue, 2), 140, 275);
+    ctx.fillText(formatUSD(calculatedData.finalAirdropValue, 2), 140, 275);
     
     ctx.fillStyle = "#8E919A";
     ctx.font = "12px monospace";
@@ -281,11 +269,11 @@ export default function AirdropPage() {
 
     // Details Grid Layout
     const details = [
-      { label: "Your points =", val: formatNumber(userPoints) },
-      { label: "Price per point =", val: `$${calculations.pricePerPoint.toFixed(2)} USD` },
-      { label: "Assumed FDV =", val: fdv === "" ? "$0" : `$${fdv}${fdvUnit}` },
-      { label: "Airdrop Allocation =", val: `${airdropPercent}%` },
-      { label: "Distributed Points =", val: `${totalDistributedPoints}M` }
+      { label: "Your points =", val: formatNumber(calculatedData.userPoints) },
+      { label: "Price per point =", val: `$${calculatedData.pricePerPoint.toFixed(2)} USD` },
+      { label: "Assumed FDV =", val: calculatedData.fdv === "" ? "$0" : `$${calculatedData.fdv}${calculatedData.fdvUnit}` },
+      { label: "Airdrop Allocation =", val: `${AIRDROP_PERCENT}% (Confirmed)` },
+      { label: "Distributed Points =", val: `${TOTAL_DISTRIBUTED_POINTS}M` }
     ];
 
     const startX = 120;
@@ -310,8 +298,6 @@ export default function AirdropPage() {
       ctx.font = "14px sans-serif"; // reset
     });
 
-
-
     // Footnote
     ctx.fillStyle = "#4A4D56";
     ctx.font = "11px monospace";
@@ -320,7 +306,7 @@ export default function AirdropPage() {
     // Download image
     const dataUrl = canvas.toDataURL("image/png");
     const link = document.createElement("a");
-    link.download = `variational-airdrop-estimate-${userPoints}-pts.png`;
+    link.download = `variational-airdrop-estimate-${calculatedData.userPoints}-pts.png`;
     link.href = dataUrl;
     link.click();
   };
@@ -373,8 +359,6 @@ export default function AirdropPage() {
                     />
                   </div>
                 </div>
-
-
 
                 {/* Price per Point (USD) */}
                 <div className="space-y-1.5">
@@ -434,73 +418,22 @@ export default function AirdropPage() {
                   </div>
                 </div>
 
-                {/* Airdrop % Slider */}
-                <div className="space-y-2.5">
+                {/* Confirmed Airdrop % Display (Slider removed) */}
+                <div className="space-y-1.5">
                   <div className="flex justify-between items-center">
-                    <span className="text-xs uppercase tracking-wider text-text-secondary font-bold flex items-center gap-1">
-                      Airdrop %
+                    <span className="text-xs uppercase tracking-wider text-text-secondary font-bold flex items-center gap-1.5">
+                      <span>Airdrop %</span>
+                      <span className="text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded font-mono font-semibold uppercase">
+                        Confirmed
+                      </span>
                     </span>
-                    <div className="flex items-center space-x-1 bg-[#030305] border border-[#14151A] rounded px-2 py-0.5 w-20">
-                      <input
-                        type="number"
-                        step="0.5"
-                        min="1"
-                        max="100"
-                        value={airdropPercent}
-                        onChange={(e) => handleAirdropPercentChange(e.target.value)}
-                        className="bg-transparent text-right text-xs font-mono text-white focus:outline-none w-full"
-                      />
-                      <span className="text-xs font-mono text-[#8E919A]">%</span>
-                    </div>
+                    <span className="text-xs font-mono text-[#8E919A]">Official Allocation</span>
                   </div>
-                  
-                  <input
-                    type="range"
-                    min="1"
-                    max="50"
-                    step="0.5"
-                    value={airdropPercent}
-                    onChange={(e) => handleAirdropPercentChange(Number(e.target.value))}
-                    className="custom-slider w-full"
-                  />
-
-                  {/* Radio Indicator Ticks */}
-                  <div className="relative w-full h-12 mt-3 select-none">
-                    {[5, 10, 15, 20, 25, 30, 35, 40, 45, 50].map((val) => {
-                      const min = 1;
-                      const max = 50;
-                      const percentage = ((val - min) / (max - min)) * 100;
-                      return (
-                        <button
-                          key={val}
-                          type="button"
-                          onClick={() => handleAirdropPercentChange(val)}
-                          className="absolute flex flex-col items-center cursor-pointer group focus:outline-none"
-                          style={{ left: `calc(8px + ${percentage}% - ${percentage * 0.16}px)`, transform: "translateX(-50%)" }}
-                        >
-                          <div 
-                            className={cn(
-                              "w-2.5 h-2.5 rounded-full border transition-all duration-200",
-                              airdropPercent === val 
-                                ? "bg-accent-blue border-accent-blue scale-125 shadow-[0_0_8px_rgba(0,136,255,0.6)]" 
-                                : "bg-transparent border-[#4A4D56] group-hover:border-[#8E919A]"
-                            )} 
-                          />
-                          <span 
-                            className={cn(
-                              "text-[9px] sm:text-xs font-mono select-none mt-1 transition-colors",
-                              airdropPercent === val ? "text-white font-bold" : "text-[#8E919A]"
-                            )}
-                          >
-                            {val}%
-                          </span>
-                        </button>
-                      );
-                    })}
+                  <div className="bg-[#030305] border border-[#14151A] rounded px-3 py-2.5 flex items-center justify-between">
+                    <span className="text-white text-sm font-mono font-bold">32%</span>
+                    <span className="text-xs font-mono text-[#8E919A]">Fixed allocation</span>
                   </div>
                 </div>
-
-
 
                 <button
                   type="submit"
@@ -529,7 +462,7 @@ export default function AirdropPage() {
                 {/* Visual pulse indicator when calculating */}
                 <AnimatePresence mode="wait">
                   <motion.div
-                    key={calculations.finalAirdropValue}
+                    key={calculatedData.finalAirdropValue}
                     initial={{ opacity: 0.8, scale: 0.98 }}
                     animate={{ opacity: 1, scale: 1 }}
                     className={cn(
@@ -538,7 +471,7 @@ export default function AirdropPage() {
                     )}
                   >
                     <span className="text-4xl sm:text-5xl font-black text-white tracking-tight text-center">
-                      {formatUSD(calculations.finalAirdropValue, 2)}
+                      {formatUSD(calculatedData.finalAirdropValue, 2)}
                     </span>
                     <span className="text-xs font-mono uppercase font-bold tracking-widest text-text-secondary mt-2.5">
                       USD
@@ -551,15 +484,19 @@ export default function AirdropPage() {
               <div className="border border-[#14151A] bg-[#030305]/40 rounded-lg divide-y divide-[#14151A] font-mono text-xs overflow-hidden">
                 <div className="flex justify-between items-center p-3">
                   <span className="text-text-secondary">Your points =</span>
-                  <span className="text-white font-bold">{formatNumber(userPoints)}</span>
+                  <span className="text-white font-bold">{formatNumber(calculatedData.userPoints)}</span>
                 </div>
                 <div className="flex justify-between items-center p-3">
                   <span className="text-text-secondary">Price per point =</span>
-                  <span className="text-white font-bold">${calculations.pricePerPoint.toFixed(2)} USD</span>
+                  <span className="text-white font-bold">${calculatedData.pricePerPoint.toFixed(2)} USD</span>
+                </div>
+                <div className="flex justify-between items-center p-3">
+                  <span className="text-text-secondary">Airdrop allocation =</span>
+                  <span className="text-emerald-400 font-bold">32% (Confirmed)</span>
                 </div>
                 <div className="flex justify-between items-center p-3 bg-card font-bold">
                   <span className="text-accent-blue">Est. Airdrop Value =</span>
-                  <span className="text-white neon-text-blue">{formatUSD(calculations.finalAirdropValue, 2)} USD</span>
+                  <span className="text-white neon-text-blue">{formatUSD(calculatedData.finalAirdropValue, 2)} USD</span>
                 </div>
               </div>
             </div>
@@ -600,7 +537,7 @@ export default function AirdropPage() {
           <div>
             <h4 className="text-sm font-bold text-white tracking-wide">Formula</h4>
             <p className="text-xs font-mono text-text-secondary mt-1">
-              Estimated Airdrop = (Your Points / Total Distributed Points) x FDV x Airdrop %
+              Estimated Airdrop = (Your Points / Total Distributed Points) x FDV x 32% (Confirmed Allocation)
             </p>
           </div>
         </div>
@@ -615,7 +552,7 @@ export default function AirdropPage() {
         <div className="space-y-1 leading-normal">
           <p className="font-bold text-white uppercase tracking-wider text-xs font-mono">Simulation Parameters Notice</p>
           <p>
-            The values calculated here are estimates for user convenience and do not represent guaranteed distributions. Actual airdrop allocation percentages, final valuations, and total token emission points are subject to change until the official claim portal is released by the Variational Protocol foundation.
+            The values calculated here are estimates for user convenience based on the confirmed 32% airdrop allocation. Final valuations and token claims are subject to official confirmation by the Variational Protocol foundation.
           </p>
         </div>
       </div>
