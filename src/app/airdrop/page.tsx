@@ -11,15 +11,15 @@ import { formatNumber, formatUSD, cn } from "../../lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 
 const AIRDROP_PERCENT = 32;
-const TOTAL_DISTRIBUTED_POINTS = 9; // locked to 9M
+const TOTAL_DISTRIBUTED_POINTS = 11; // approximately 11M
 
 export default function AirdropPage() {
   // Main states matching the inputs
   const [userPoints, setUserPoints] = useState<number>(100);
   const [fdv, setFdv] = useState<number | "">(2);
   const [fdvUnit, setFdvUnit] = useState<"M" | "B">("B");
-  // Default pricePerPoint at 2B FDV and 32% allocation: (2e9 * 0.32) / (9e6) = 71.11
-  const [pricePerPoint, setPricePerPoint] = useState<number | "">(71.11);
+  // Default pricePerPoint at 2B FDV, 32% allocation, ~11M points: (2e9 * 0.32) / (11e6) = 58.18
+  const [pricePerPoint, setPricePerPoint] = useState<number | "">(58.18);
   const [, setLastEdited] = useState<"fdv" | "price">("fdv");
   
   // Interactive UI feedback states
@@ -35,10 +35,10 @@ export default function AirdropPage() {
     finalAirdropValue: number;
   }>({
     userPoints: 100,
-    pricePerPoint: 71.11,
+    pricePerPoint: 58.18,
     fdv: 2,
     fdvUnit: "B",
-    finalAirdropValue: 7111,
+    finalAirdropValue: 5818,
   });
 
   // Sync Handlers between FDV and Price Per Point using confirmed 32% allocation
@@ -273,7 +273,7 @@ export default function AirdropPage() {
       { label: "Price per point =", val: `$${calculatedData.pricePerPoint.toFixed(2)} USD` },
       { label: "Assumed FDV =", val: calculatedData.fdv === "" ? "$0" : `$${calculatedData.fdv}${calculatedData.fdvUnit}` },
       { label: "Airdrop Allocation =", val: `${AIRDROP_PERCENT}% (Confirmed)` },
-      { label: "Distributed Points =", val: `${TOTAL_DISTRIBUTED_POINTS}M` }
+      { label: "Distributed Points =", val: `~${TOTAL_DISTRIBUTED_POINTS}M` }
     ];
 
     const startX = 120;
@@ -537,12 +537,12 @@ export default function AirdropPage() {
           <div>
             <h4 className="text-sm font-bold text-white tracking-wide">Formula</h4>
             <p className="text-xs font-mono text-text-secondary mt-1">
-              Estimated Airdrop = (Your Points / Total Distributed Points) x FDV x 32% (Confirmed Allocation)
+              Estimated Airdrop = (Your Points / Total Distributed Points [~11M]) x FDV x 32% (Confirmed Allocation)
             </p>
           </div>
         </div>
         <div className="px-4 py-2 bg-[#030305] border border-border rounded-lg text-xs text-text-secondary font-mono tracking-wide shrink-0">
-          Total Distributed Points is locked to 9M for Variational.
+          Total Distributed Points is approximately 11M for Variational.
         </div>
       </div>
 
